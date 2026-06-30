@@ -692,20 +692,21 @@ if (file_exists($db_file)) {
         }
         .modal-input {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-top: 10px;
+            padding: 12px 16px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 15px;
+            margin-top: 12px;
             outline: none;
             box-sizing: border-box;
             background: #fff;
             color: #1e293b;
             text-align: left;
+            transition: all 0.2s ease;
         }
         .modal-input:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
         }
         .modal-footer {
             display: flex;
