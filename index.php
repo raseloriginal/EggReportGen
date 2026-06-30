@@ -1,3 +1,61 @@
+<?php
+$db_file = __DIR__ . '/database.json';
+
+// Handle POST request to save data
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
+    $input = file_get_contents('php://input');
+    $decoded = json_decode($input, true);
+    if ($decoded !== null) {
+        if (file_put_contents($db_file, json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+            echo json_encode(['status' => 'success', 'message' => 'Data saved successfully']);
+            exit;
+        } else {
+            http_response_code(500);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to write to database file']);
+            exit;
+        }
+    } else {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid JSON data']);
+        exit;
+    }
+}
+
+// Load data for initial page render
+$initial_data = [
+    'agentCounter' => 1,
+    'agents' => [
+        [
+            'id' => 1,
+            'name' => 'Tuku/Binodpur',
+            'months' => [
+                [
+                    'id' => 'month-1-default',
+                    'name' => 'April',
+                    'rows' => [
+                        [
+                            'date' => '2026-04-09',
+                            'product' => 'লাল ডিম এ গ্রেড',
+                            'qty' => 1200,
+                            'rate' => 7.9666,
+                            'deposit' => 0
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ]
+];
+
+if (file_exists($db_file)) {
+    $file_content = file_get_contents($db_file);
+    $decoded_file = json_decode($file_content, true);
+    if ($decoded_file !== null) {
+        $initial_data = $decoded_file;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -363,7 +421,7 @@
 
 <div class="main-header">
     <h1><i class="fa-solid fa-egg" style="color: #d97706; margin-right: 6px;"></i> Egg Report — Multi Agent</h1>
-    <p>All data is saved automatically in your browser</p>
+    <p>All data is saved automatically to the server database</p>
 </div>
 
 <div class="tabs-bar" id="tabs-bar">
@@ -394,40 +452,42 @@
 //  data = { agentCounter: N, agents: [ { id, name, months: [ { id, name, rows: [ { date, product, qty, rate, deposit } ] } ] } ] }
 // ═══════════════════════════════════════════════════════
 
-const STORAGE_KEY = 'eggReportData';
-let data = { agentCounter: 0, agents: [] };
+let data = <?php echo json_encode($initial_data, JSON_UNESCAPED_UNICODE); ?>;
 let activeTab = 'summary';
 
 // ── STORAGE ──────────────────────────────────────────
 function saveData() {
     // Before saving, sync DOM inputs back into data model
     syncDomToData();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    flashSaved();
+    
+    // Save to server
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(res => {
+        if (res.status === 'success') {
+            flashSaved();
+        } else {
+            console.error('Failed to save:', res.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving data:', error);
+    });
 }
 
 function loadData() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-        try { data = JSON.parse(raw); } catch(e) { data = { agentCounter: 0, agents: [] }; }
-    } else {
-        // Default: one pre-loaded agent
-        data = {
-            agentCounter: 1,
-            agents: [{
-                id: 1,
-                name: 'Tuku/Binodpur',
-                months: [{
-                    id: 'month-1-default',
-                    name: 'April',
-                    rows: [
-                        { date: '09.04.26', product: 'Red Egg A', qty: 1200, rate: 7.9666, deposit: 0 }
-                    ]
-                }]
-            }]
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
+    // Already loaded via PHP injection into the `data` variable
 }
 
 function syncDomToData() {
@@ -840,8 +900,8 @@ function renderSummary() {
 // ── CLEAR ALL ─────────────────────────────────────────
 function clearAllData() {
     if (!confirm('⚠️ This will DELETE ALL agents and ALL data permanently. Are you sure?')) return;
-    localStorage.removeItem(STORAGE_KEY);
     data = { agentCounter: 0, agents: [] };
+    saveData();
     renderAll();
     renderSummary();
 }

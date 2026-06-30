@@ -1,0 +1,24 @@
+{
+    "agentCounter": 1,
+    "agents": [
+        {
+            "id": 1,
+            "name": "Tuku/Binodpur",
+            "months": [
+                {
+                    "id": "month-1-default",
+                    "name": "April",
+                    "rows": [
+                        {
+                            "date": "2026-04-09",
+                            "product": "লাল ডিম এ গ্রেড",
+                            "qty": 1200,
+                            "rate": 7.9666,
+                            "deposit": 0
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
